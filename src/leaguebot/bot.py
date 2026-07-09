@@ -23,14 +23,10 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 async def on_ready():
     print(f"Logged in as {bot.user} (id: {bot.user.id})")
 
-    if GUILD_ID:
-        guild = discord.Object(id=int(GUILD_ID))
-        bot.tree.copy_global_to(guild=guild)
-        synced = await bot.tree.sync(guild=guild)
-        print(f"Synced {len(synced)} command(s) to guild {GUILD_ID}")
-    else:
-        synced = await bot.tree.sync()
-        print(f"Synced {len(synced)} command(s) globally (may take up to an hour to appear)")
+    # This bypasses the guild lock and forces a global sync
+    synced = await bot.tree.sync()
+    print(f"Synced {len(synced)} command(s) globally (may take up to an hour to appear)")
+
 
 
 async def main():
