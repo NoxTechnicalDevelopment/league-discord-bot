@@ -43,6 +43,14 @@ def main() -> None:
     with open(DATA_DIR / "runes.json", "w") as f:
         json.dump(rune_data, f, indent=2)
     print("Saved rune trees to data/runes.json")
+    print("Fetching item data...")
+    item_data = fetch_json(
+        f"https://ddragon.leagueoflegends.com/cdn/{latest}/data/en_US/item.json"
+    )
+    items = {item_id: info["name"] for item_id, info in item_data["data"].items()}
+    with open(DATA_DIR / "items.json", "w") as f:
+        json.dump({"version": latest, "items": items}, f, indent=2)
+    print(f"Saved {len(items)} items to data/items.json")
 
 
 if __name__ == "__main__":

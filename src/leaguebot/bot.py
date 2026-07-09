@@ -5,6 +5,7 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from leaguebot.db import init_db
 
 load_dotenv()
 
@@ -33,8 +34,10 @@ async def on_ready():
 
 
 async def main():
+    await init_db()
     async with bot:
         await bot.load_extension("leaguebot.cogs.randomchamp.cog")
+        await bot.load_extension("leaguebot.cogs.recap.cog")
         await bot.start(TOKEN)
 
 
