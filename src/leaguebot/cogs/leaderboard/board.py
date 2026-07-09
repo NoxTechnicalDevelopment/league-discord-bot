@@ -57,8 +57,16 @@ async def build_leaderboard_embed(stat: str) -> discord.Embed:
             if stats:
                 rows.append((label, stats, None))
 
+
+    STAT_DISPLAY_NAMES = {
+    "win_rate": "Win Rate",
+    "kda": "KDA",
+    "wins": "Total Wins",
+    "rank": "Solo Queue Rank",
+    }
+    
     embed = discord.Embed(
-        title=f"🏆 Leaderboard — {stat.replace('_', ' ').title()}",
+        title=f"🏆 Leaderboard — {STAT_DISPLAY_NAMES.get(stat, stat.title())}",
         color=discord.Color.gold(),
     )
 

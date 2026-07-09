@@ -11,6 +11,7 @@ from discord.ext import commands, tasks
 from leaguebot.db import set_leaderboard_channel, get_leaderboard_channel
 from leaguebot.cogs.leaderboard.sync import sync_all_users
 from leaguebot.cogs.leaderboard.board import build_leaderboard_embed
+from leaguebot.cogs.memestats.stats import build_meme_stats_embed
 
 STAT_CHOICES = [
     app_commands.Choice(name="Win Rate", value="win_rate"),
@@ -48,8 +49,11 @@ class LeaderboardCog(commands.Cog):
         if channel_id:
             channel = interaction.guild.get_channel(channel_id)
             if channel:
-                embed = await build_leaderboard_embed("win_rate")
-                await channel.send(embed=embed)
+                for stat in ("win_rate", "kda", "wins", "rank"):
+                    embed = await build_leaderboard_embed(stat)
+                    await channel.send(embed=embed)
+                meme_embed = await build_meme_stats_embed()
+                await channel.send(embed=meme_embed)
                 posted = True
 
         status = f"Synced {len(summary)} user(s), {total_added} new match(es) added."
@@ -79,8 +83,11 @@ class LeaderboardCog(commands.Cog):
             if channel_id:
                 channel = guild.get_channel(channel_id)
                 if channel:
-                    embed = await build_leaderboard_embed("win_rate")
-                    await channel.send(embed=embed)
+                    for stat in ("win_rate", "kda", "wins", "rank"):
+                        embed = await build_leaderboard_embed(stat)
+                        await channel.send(embed=embed)
+                    meme_embed = await build_meme_stats_embed()
+                    await channel.send(embed=meme_embed)
 
     @weekly_sync.before_loop
     async def before_weekly_sync(self):
