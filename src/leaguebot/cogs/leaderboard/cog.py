@@ -34,6 +34,31 @@ class LeaderboardCog(commands.Cog):
         await set_leaderboard_channel(interaction.guild_id, channel.id)
         await interaction.response.send_message(f"Weekly leaderboard will post to {channel.mention}.")
 
+    @app_commands.command(name="syncnow", description="Manually trigger the weekly sync + leaderboard post (admin only)")
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def syncnow(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
+        summary = await sync_all_users()
+        errors = {uid: s["error"] for uid, s in summary.items() if s["error"]}
+        total_added = sum(s["matches_added"] for s in summary.values())
+
+        channel_id = await get_leaderboard_channel(interaction.guild_id)
+        posted = False
+        if channel_id:
+            channel = interaction.guild.get_channel(channel_id)
+            if channel:
+                embed = await build_leaderboard_embed("win_rate")
+                await channel.send(embed=embed)
+                posted = True
+
+        status = f"Synced {len(summary)} user(s), {total_added} new match(es) added."
+        if errors:
+            status += f"\n{len(errors)} error(s): {errors}"
+        status += f"\nPosted to leaderboard channel: {'yes' if posted else 'no (not set, or channel missing)'}"
+
+        await interaction.followup.send(status)
+
     @app_commands.command(name="leaderboard", description="Show the server leaderboard")
     @app_commands.describe(stat="Which stat to rank by")
     @app_commands.choices(stat=STAT_CHOICES)
