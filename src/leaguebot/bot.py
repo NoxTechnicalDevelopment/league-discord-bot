@@ -39,6 +39,7 @@ async def main():
         await bot.load_extension("leaguebot.cogs.randomchamp.cog")
         await bot.load_extension("leaguebot.cogs.recap.cog")
         await bot.load_extension("leaguebot.cogs.leaderboard.cog")
+        await bot.load_extension("leaguebot.cogs.memestats.cog")
         await bot.start(TOKEN)
 
 

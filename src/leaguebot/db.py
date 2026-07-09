@@ -30,6 +30,14 @@ async def init_db() -> None:
                 PRIMARY KEY (match_id, discord_id)
             )
         """)
+        async with db.execute("PRAGMA table_info(matches)") as cursor:
+            existing_columns = {row[1] async for row in cursor}
+        if "duration" not in existing_columns:
+            await db.execute("ALTER TABLE matches ADD COLUMN duration INTEGER DEFAULT 0")
+        if "cs" not in existing_columns:
+            await db.execute("ALTER TABLE matches ADD COLUMN cs INTEGER DEFAULT 0")
+        if "gold" not in existing_columns:
+            await db.execute("ALTER TABLE matches ADD COLUMN gold INTEGER DEFAULT 0")
         await db.execute("""
             CREATE TABLE IF NOT EXISTS ranks (
                 discord_id INTEGER PRIMARY KEY,
@@ -82,15 +90,16 @@ async def get_all_registered_users() -> list[dict]:
 
 
 async def save_match(discord_id: int, match_id: str, champion: str, win: bool,
-                      kills: int, deaths: int, assists: int, damage: int, played_at: int) -> None:
+                      kills: int, deaths: int, assists: int, damage: int, played_at: int,
+                      duration: int = 0, cs: int = 0, gold: int = 0) -> None:
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
             INSERT OR IGNORE INTO matches
-                (match_id, discord_id, champion, win, kills, deaths, assists, damage, played_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (match_id, discord_id, champion, win, kills, deaths, assists, damage, played_at, duration, cs, gold)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (match_id, discord_id, champion, int(win), kills, deaths, assists, damage, played_at),
+            (match_id, discord_id, champion, int(win), kills, deaths, assists, damage, played_at, duration, cs, gold),
         )
         await db.commit()
 
@@ -101,6 +110,22 @@ async def get_recent_matches(discord_id: int, since_timestamp: int) -> list[dict
         async with db.execute(
             "SELECT * FROM matches WHERE discord_id = ? AND played_at >= ?",
             (discord_id, since_timestamp),
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+        
+async def get_all_recent_matches(since_timestamp: int) -> list[dict]:
+    # All matches (across every registered user) played since the given timestamp, joined with the player's Riot ID for display purposes.
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            """
+            SELECT matches.*, users.game_name, users.tag_line
+            FROM matches
+            JOIN users ON matches.discord_id = users.discord_id
+            WHERE matches.played_at >= ?
+            """,
+            (since_timestamp,),
         ) as cursor:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]

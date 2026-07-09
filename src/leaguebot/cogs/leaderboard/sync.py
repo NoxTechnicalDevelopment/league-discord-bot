@@ -42,6 +42,9 @@ async def sync_all_users() -> dict:
                     assists=participant["assists"],
                     damage=participant["totalDamageDealtToChampions"],
                     played_at=played_at,
+                    duration=match["info"]["gameDuration"],
+                    cs=participant["totalMinionsKilled"] + participant["neutralMinionsKilled"],
+                    gold=participant["goldEarned"],
                 )
                 added += 1
 
