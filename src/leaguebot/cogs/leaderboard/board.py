@@ -21,9 +21,9 @@ def _rank_sort_key(rank: dict) -> tuple:
     return (tier_index, division_index, rank["league_points"] or 0)
 
 
-async def _weekly_stats_for_user(discord_id: int) -> dict | None:
+async def _weekly_stats_for_user(guild_id: int, discord_id: int) -> dict | None:
     since = int(time.time()) - SECONDS_PER_WEEK
-    matches = await get_recent_matches(discord_id, since)
+    matches = await get_recent_matches(guild_id, discord_id, since)
     if not matches:
         return None
 
@@ -41,19 +41,19 @@ async def _weekly_stats_for_user(discord_id: int) -> dict | None:
     }
 
 
-async def build_leaderboard_embed(stat: str) -> discord.Embed:
-    users = await get_all_registered_users()
+async def build_leaderboard_embed(guild_id: int, stat: str) -> discord.Embed:
+    users = await get_all_registered_users(guild_id)
     rows = []
 
     for user in users:
         label = f"{user['game_name']}#{user['tag_line']}"
 
         if stat == "rank":
-            rank = await get_rank(user["discord_id"])
+            rank = await get_rank(guild_id, user["discord_id"])
             if rank and rank["tier"]:
                 rows.append((label, rank, _rank_sort_key(rank)))
         else:
-            stats = await _weekly_stats_for_user(user["discord_id"])
+            stats = await _weekly_stats_for_user(guild_id, user["discord_id"])
             if stats:
                 rows.append((label, stats, None))
 
@@ -99,5 +99,5 @@ async def build_leaderboard_embed(stat: str) -> discord.Embed:
             for i, (label, data, _) in enumerate(rows)
         ]
 
-    embed.description = "\n".join(lines)
+    embed.description = "\n".join(lines[:15])
     return embed

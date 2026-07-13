@@ -9,33 +9,53 @@ from leaguebot.riot_api import get_puuid, get_match_ids, get_match, RiotAPIError
 from leaguebot.items import item_name
 
 
+def _parse_riot_id(riot_id: str) -> tuple[str, str] | None:
+    game_name, separator, tag_line = riot_id.strip().rpartition("#")
+    if not separator or not game_name or not tag_line:
+        return None
+    return game_name, tag_line
+
+
+def _lookup_error(error: RiotAPIError) -> str:
+    if error.status == 404:
+        return "Couldn't find that Riot ID."
+    return "Riot is unavailable right now. Please try again later."
+
+
 class RecapCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
     @app_commands.command(name="register", description="Link your Discord account to your Riot ID")
+    @app_commands.guild_only()
+    @app_commands.checks.cooldown(3, 60.0)
     @app_commands.describe(riot_id="Your Riot ID in the form Name#Tag, e.g. Rat King Ding#4269")
     async def register(self, interaction: discord.Interaction, riot_id: str):
-        if "#" not in riot_id:
+        parsed_riot_id = _parse_riot_id(riot_id)
+        if not parsed_riot_id:
             await interaction.response.send_message(
                 "Riot ID must be in the form `Name#Tag`, e.g. `Rat King Ding#4269`.",
                 ephemeral=True,
             )
             return
 
-        game_name, tag_line = riot_id.rsplit("#", 1)
+        game_name, tag_line = parsed_riot_id
         await interaction.response.defer(ephemeral=True)
 
         try:
             puuid = await get_puuid(game_name, tag_line)
         except RiotAPIError as e:
-            await interaction.followup.send(f"Couldn't find that Riot ID: {e.message}")
+            await interaction.followup.send(_lookup_error(e))
             return
 
-        await register_user(interaction.user.id, game_name, tag_line, puuid)
+        await register_user(
+            interaction.guild_id, interaction.user.id, game_name, tag_line, puuid
+        )
         await interaction.followup.send(f"Registered as **{game_name}#{tag_line}**.")
 
     @app_commands.command(name="lastgame", description="Get a recap of the most recent match")
+    @app_commands.guild_only()
+    @app_commands.checks.cooldown(3, 60.0)
     @app_commands.describe(
         user="A registered Discord member to look up",
         riot_id="Or, a raw Riot ID (Name#Tag) if they haven't registered",
@@ -49,18 +69,19 @@ class RecapCog(commands.Cog):
         await interaction.response.defer()
 
         if riot_id:
-            if "#" not in riot_id:
+            parsed_riot_id = _parse_riot_id(riot_id)
+            if not parsed_riot_id:
                 await interaction.followup.send("Riot ID must be in the form `Name#Tag`.")
                 return
-            game_name, tag_line = riot_id.rsplit("#", 1)
+            game_name, tag_line = parsed_riot_id
             try:
                 puuid = await get_puuid(game_name, tag_line)
             except RiotAPIError as e:
-                await interaction.followup.send(f"Couldn't find that Riot ID: {e.message}")
+                await interaction.followup.send(_lookup_error(e))
                 return
         else:
             target = user or interaction.user
-            record = await get_registered_user(target.id)
+            record = await get_registered_user(interaction.guild_id, target.id)
             if not record:
                 await interaction.followup.send(
                     f"{target.mention} hasn't registered yet — use `/register` first, "
@@ -72,12 +93,27 @@ class RecapCog(commands.Cog):
 
         try:
             match_ids = await get_match_ids(puuid, count=1)
-            match = await get_match(match_ids[0])
         except RiotAPIError as e:
-            await interaction.followup.send(f"Riot API error: {e.message}")
+            await interaction.followup.send(_lookup_error(e))
             return
 
-        participant = next(p for p in match["info"]["participants"] if p["puuid"] == puuid)
+        if not match_ids:
+            await interaction.followup.send("No recent games were found for that account.")
+            return
+
+        try:
+            match = await get_match(match_ids[0])
+        except RiotAPIError as e:
+            await interaction.followup.send(_lookup_error(e))
+            return
+
+        participant = next(
+            (p for p in match.get("info", {}).get("participants", []) if p.get("puuid") == puuid),
+            None,
+        )
+        if not participant:
+            await interaction.followup.send("That account was not present in its latest match.")
+            return
 
         embed = discord.Embed(
             title=f"{game_name}#{tag_line} — {participant['championName']}",

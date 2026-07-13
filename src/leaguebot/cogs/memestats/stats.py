@@ -12,9 +12,9 @@ def _label(match: dict) -> str:
     return f"{match['game_name']}#{match['tag_line']}"
 
 
-async def build_meme_stats_embed() -> discord.Embed:
+async def build_meme_stats_embed(guild_id: int) -> discord.Embed:
     since = int(time.time()) - SECONDS_PER_WEEK
-    matches = await get_all_recent_matches(since)
+    matches = await get_all_recent_matches(guild_id, since)
 
     embed = discord.Embed(title="🎭 Weekly Meme Stats", color=discord.Color.purple())
 

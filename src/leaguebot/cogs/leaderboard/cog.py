@@ -30,17 +30,20 @@ class LeaderboardCog(commands.Cog):
         self.weekly_sync.cancel()
 
     @app_commands.command(name="setleaderboardchannel", description="Set the channel for weekly leaderboard posts")
+    @app_commands.guild_only()
     @app_commands.checks.has_permissions(manage_guild=True)
     async def setleaderboardchannel(self, interaction: discord.Interaction, channel: discord.TextChannel):
         await set_leaderboard_channel(interaction.guild_id, channel.id)
         await interaction.response.send_message(f"Weekly leaderboard will post to {channel.mention}.")
 
     @app_commands.command(name="syncnow", description="Manually trigger the weekly sync + leaderboard post (admin only)")
+    @app_commands.guild_only()
     @app_commands.checks.has_permissions(manage_guild=True)
+    @app_commands.checks.cooldown(1, 600.0, key=lambda interaction: interaction.guild_id)
     async def syncnow(self, interaction: discord.Interaction):
         await interaction.response.defer(ephemeral=True)
 
-        summary = await sync_all_users()
+        summary = await sync_all_users(interaction.guild_id)
         errors = {uid: s["error"] for uid, s in summary.items() if s["error"]}
         total_added = sum(s["matches_added"] for s in summary.values())
 
@@ -50,43 +53,43 @@ class LeaderboardCog(commands.Cog):
             channel = interaction.guild.get_channel(channel_id)
             if channel:
                 for stat in ("win_rate", "kda", "wins", "rank"):
-                    embed = await build_leaderboard_embed(stat)
+                    embed = await build_leaderboard_embed(interaction.guild_id, stat)
                     await channel.send(embed=embed)
-                meme_embed = await build_meme_stats_embed()
+                meme_embed = await build_meme_stats_embed(interaction.guild_id)
                 await channel.send(embed=meme_embed)
                 posted = True
 
         status = f"Synced {len(summary)} user(s), {total_added} new match(es) added."
         if errors:
-            status += f"\n{len(errors)} error(s): {errors}"
+            status += f"\n{len(errors)} user(s) could not be synced; please try again later."
         status += f"\nPosted to leaderboard channel: {'yes' if posted else 'no (not set, or channel missing)'}"
 
         await interaction.followup.send(status)
 
     @app_commands.command(name="leaderboard", description="Show the server leaderboard")
+    @app_commands.guild_only()
     @app_commands.describe(stat="Which stat to rank by")
     @app_commands.choices(stat=STAT_CHOICES)
     async def leaderboard(self, interaction: discord.Interaction, stat: app_commands.Choice[str]):
         await interaction.response.defer()
-        embed = await build_leaderboard_embed(stat.value)
+        embed = await build_leaderboard_embed(interaction.guild_id, stat.value)
         await interaction.followup.send(embed=embed)
 
-    @tasks.loop(time=datetime.time(hour=12, minute=0))  # runs daily at 12:00 UTC, checks day inside
+    @tasks.loop(time=datetime.time(hour=12, minute=0, tzinfo=datetime.UTC))
     async def weekly_sync(self):
-        if datetime.datetime.utcnow().weekday() != 0:  # 0 = Monday
+        if datetime.datetime.now(datetime.UTC).weekday() != 0:  # 0 = Monday
             return
 
-        await sync_all_users()
-
         for guild in self.bot.guilds:
+            await sync_all_users(guild.id)
             channel_id = await get_leaderboard_channel(guild.id)
             if channel_id:
                 channel = guild.get_channel(channel_id)
                 if channel:
                     for stat in ("win_rate", "kda", "wins", "rank"):
-                        embed = await build_leaderboard_embed(stat)
+                        embed = await build_leaderboard_embed(guild.id, stat)
                         await channel.send(embed=embed)
-                    meme_embed = await build_meme_stats_embed()
+                    meme_embed = await build_meme_stats_embed(guild.id)
                     await channel.send(embed=meme_embed)
 
     @weekly_sync.before_loop

@@ -1,17 +1,29 @@
 #Pulls fresh match history and current rank for every registered user, storing results in the DB. 
 # This is what both the weekly scheduled task and (eventually) a manual admin trigger call into.
+import asyncio
 import time
 
-from leaguebot.db import get_all_registered_users, save_match, save_rank
+from leaguebot.db import (
+    delete_old_matches,
+    get_all_registered_users,
+    save_match,
+    save_rank,
+)
 from leaguebot.riot_api import get_match_ids, get_match, get_rank, RiotAPIError
 
 SECONDS_PER_WEEK = 7 * 24 * 60 * 60
 MATCHES_TO_CHECK = 15  # how many recent match IDs to pull per user, per sync
+_sync_lock = asyncio.Lock()
 
 
-async def sync_all_users() -> dict:
+async def sync_all_users(guild_id: int) -> dict:
     # Returns a summary dict: {discord_id: {"matches_added": int, "error": str | None}}
-    users = await get_all_registered_users()
+    async with _sync_lock:
+        return await _sync_guild_users(guild_id)
+
+
+async def _sync_guild_users(guild_id: int) -> dict:
+    users = await get_all_registered_users(guild_id)
     now = int(time.time())
     cutoff = now - SECONDS_PER_WEEK
     summary = {}
@@ -32,8 +44,10 @@ async def sync_all_users() -> dict:
                 participant = next(
                     p for p in match["info"]["participants"] if p["puuid"] == puuid
                 )
-                await save_match(
+                added += await save_match(
+                    guild_id=guild_id,
                     discord_id=discord_id,
+                    puuid=puuid,
                     match_id=match_id,
                     champion=participant["championName"],
                     win=participant["win"],
@@ -46,12 +60,13 @@ async def sync_all_users() -> dict:
                     cs=participant["totalMinionsKilled"] + participant["neutralMinionsKilled"],
                     gold=participant["goldEarned"],
                 )
-                added += 1
 
             rank = await get_rank(puuid)
             if rank:
                 await save_rank(
+                    guild_id=guild_id,
                     discord_id=discord_id,
+                    puuid=puuid,
                     tier=rank["tier"],
                     rank=rank["rank"],
                     league_points=rank["league_points"],
@@ -62,5 +77,11 @@ async def sync_all_users() -> dict:
 
         except RiotAPIError as e:
             summary[discord_id] = {"matches_added": added, "error": e.message}
+        except (KeyError, StopIteration, TypeError):
+            summary[discord_id] = {
+                "matches_added": added,
+                "error": "Riot API returned invalid data",
+            }
 
+    await delete_old_matches(guild_id, cutoff)
     return summary
