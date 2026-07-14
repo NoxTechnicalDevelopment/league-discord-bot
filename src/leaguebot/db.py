@@ -107,7 +107,7 @@ async def save_match(discord_id: int, match_id: str, champion: str, win: bool,
             INSERT OR IGNORE INTO matches
                 (match_id, discord_id, champion, win, kills, deaths, assists, damage, played_at, duration, cs, gold,
                 doubleKills, tripleKills, quadraKills, pentaKills)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (match_id, discord_id, champion, int(win), kills, deaths, assists, damage, played_at, duration, cs, gold,
              doubleKills, tripleKills, quadraKills, pentaKills),

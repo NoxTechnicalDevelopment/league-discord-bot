@@ -12,6 +12,7 @@ MATCHES_TO_CHECK = 15  # how many recent match IDs to pull per user, per sync
 async def sync_all_users() -> dict:
     # Returns a summary dict: {discord_id: {"matches_added": int, "error": str | None}}
     users = await get_all_registered_users()
+    print(f"[SYNC] starting the syn for {len(users)} user(s)")
     now = int(time.time())
     cutoff = now - SECONDS_PER_WEEK
     summary = {}
@@ -20,11 +21,15 @@ async def sync_all_users() -> dict:
         discord_id = user["discord_id"]
         puuid = user["puuid"]
         added = 0
+        print(f"[SYNC] Processing discord_id={discord_id}")
 
         try:
             match_ids = await get_match_ids(puuid, count=MATCHES_TO_CHECK)
+            print(f"[SYNC]   got {len(match_ids)} match ids")
             for match_id in match_ids:
+                print(f"[SYNC]   fetching match {match_id}")
                 match = await get_match(match_id)
+                print(f"[SYNC]   fetched match {match_id}")
                 played_at = match["info"]["gameStartTimestamp"] // 1000  # ms -> s
                 if played_at < cutoff:
                     continue  # older than a week, skip
@@ -32,6 +37,7 @@ async def sync_all_users() -> dict:
                 participant = next(
                     p for p in match["info"]["participants"] if p["puuid"] == puuid
                 )
+                print(f"[SYNC]   saving match {match_id}")
                 await save_match(
                     discord_id=discord_id,
                     match_id=match_id,
@@ -50,6 +56,7 @@ async def sync_all_users() -> dict:
                     quadraKills=participant["quadraKills"],
                     pentaKills=participant["pentaKills"],
                 )
+                print(f"[SYNC]   saved match {match_id}")
                 added += 1
 
             rank = await get_rank(puuid)
