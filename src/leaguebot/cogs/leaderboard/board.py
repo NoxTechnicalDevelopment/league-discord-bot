@@ -32,12 +32,20 @@ async def _weekly_stats_for_user(discord_id: int) -> dict | None:
     total_kills = sum(m["kills"] for m in matches)
     total_deaths = sum(m["deaths"] for m in matches)
     total_assists = sum(m["assists"] for m in matches)
+    total_doubleKills = sum(m["doubleKills"] for m in matches)
+    total_tripleKills = sum(m["tripleKills"] for m in matches)
+    total_quadraKills = sum(m["quadraKills"] for m in matches)
+    total_pentaKills = sum(m["pentaKills"] for m in matches)
 
     return {
         "games": games,
         "wins": wins,
         "win_rate": wins / games,
         "avg_kda": (total_kills + total_assists) / max(total_deaths, 1),
+        "double_kills": total_doubleKills,
+        "triple_kills": total_tripleKills,
+        "quadra_kills": total_quadraKills,
+        "penta_kills": total_pentaKills,
     }
 
 
@@ -63,6 +71,10 @@ async def build_leaderboard_embed(stat: str) -> discord.Embed:
     "kda": "KDA",
     "wins": "Total Wins",
     "rank": "Solo Queue Rank",
+    "double_kills": "Double Kills",
+    "triple_kills": "Triple Kills",
+    "quadra_kills": "Quadra Kills",
+    "penta_kills": "Penta Kills"
     }
     
     embed = discord.Embed(
@@ -98,6 +110,32 @@ async def build_leaderboard_embed(stat: str) -> discord.Embed:
             f"**{i+1}.** {label} — {data['wins']} wins ({data['games']} games)"
             for i, (label, data, _) in enumerate(rows)
         ]
+    elif stat == "double_kills":
+        rows.sort(key=lambda r: r[1]["double_kills"], reverse=True)
+        lines = [
+            f"**{i+1}.** {label} — {data['double_kills']} Double Kill{'s' if data['double_kills'] != 1 else ''} ({data['games']} games)"
+            for i, (label, data, _) in enumerate(rows)
+        ]
+    elif stat == "triple_kills":
+        rows.sort(key=lambda r: r[1]["triple_kills"], reverse=True)
+        lines = [
+            f"**{i+1}.** {label} — {data['triple_kills']} Triple Kill{'s' if data['triple_kills'] != 1 else ''} ({data['games']} games)"
+            for i, (label, data, _) in enumerate(rows)
+        ]
+    elif stat == "quadra_kills":
+        rows.sort(key=lambda r: r[1]["quadra_kills"], reverse=True)
+        lines = [
+            f"**{i+1}.** {label} — {data['quadra_kills']} Quadra Kill{'s' if data['quadra_kills'] != 1 else ''} ({data['games']} games)"
+            for i, (label, data, _) in enumerate(rows)
+        ]
+    elif stat == "penta_kills":
+        rows.sort(key=lambda r: r[1]["penta_kills"], reverse=True)
+        lines = [
+            f"**{i+1}.** {label} — {data['penta_kills']} Penta Kill{'s' if data['penta_kills'] != 1 else ''} ({data['games']} games)"
+            for i, (label, data, _) in enumerate(rows)
+        ]
+    else:
+        lines = [f"Unknown stat: {stat}"]
 
     embed.description = "\n".join(lines)
     return embed

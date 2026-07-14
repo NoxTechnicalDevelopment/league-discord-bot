@@ -38,6 +38,14 @@ async def init_db() -> None:
             await db.execute("ALTER TABLE matches ADD COLUMN cs INTEGER DEFAULT 0")
         if "gold" not in existing_columns:
             await db.execute("ALTER TABLE matches ADD COLUMN gold INTEGER DEFAULT 0")
+        if "doubleKills" not in existing_columns:
+            await db.execute("ALTER TABLE matches ADD COLUMN doubleKills INTEGER DEFAULT 0")
+        if "tripleKills" not in existing_columns:
+            await db.execute("ALTER TABLE matches ADD COLUMN tripleKills INTEGER DEFAULT 0")
+        if "quadraKills" not in existing_columns:
+            await db.execute("ALTER TABLE matches ADD COLUMN quadraKills INTEGER DEFAULT 0")
+        if "pentaKills" not in existing_columns:
+            await db.execute("ALTER TABLE matches ADD COLUMN pentaKills INTEGER DEFAULT 0")
         await db.execute("""
             CREATE TABLE IF NOT EXISTS ranks (
                 discord_id INTEGER PRIMARY KEY,
@@ -91,15 +99,18 @@ async def get_all_registered_users() -> list[dict]:
 
 async def save_match(discord_id: int, match_id: str, champion: str, win: bool,
                       kills: int, deaths: int, assists: int, damage: int, played_at: int,
-                      duration: int = 0, cs: int = 0, gold: int = 0) -> None:
+                      duration: int = 0, cs: int = 0, gold: int = 0, doubleKills: int = 0,
+                      tripleKills: int = 0, quadraKills: int = 0, pentaKills: int = 0) -> None:
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(
             """
             INSERT OR IGNORE INTO matches
-                (match_id, discord_id, champion, win, kills, deaths, assists, damage, played_at, duration, cs, gold)
+                (match_id, discord_id, champion, win, kills, deaths, assists, damage, played_at, duration, cs, gold,
+                doubleKills, tripleKills, quadraKills, pentaKills)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (match_id, discord_id, champion, int(win), kills, deaths, assists, damage, played_at, duration, cs, gold),
+            (match_id, discord_id, champion, int(win), kills, deaths, assists, damage, played_at, duration, cs, gold,
+             doubleKills, tripleKills, quadraKills, pentaKills),
         )
         await db.commit()
 

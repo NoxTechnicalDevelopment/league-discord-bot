@@ -18,6 +18,10 @@ STAT_CHOICES = [
     app_commands.Choice(name="Average KDA", value="kda"),
     app_commands.Choice(name="Total Wins", value="wins"),
     app_commands.Choice(name="Solo Queue Rank", value="rank"),
+    app_commands.Choice(name="Double Kills", value="double_kills"),
+    app_commands.Choice(name="Triple Kills", value="triple_kills"),
+    app_commands.Choice(name="Quadra Kills", value="quadra_kills"),
+    app_commands.Choice(name="Penta Kills", value="penta_kills"),
 ]
 
 
@@ -49,7 +53,7 @@ class LeaderboardCog(commands.Cog):
         if channel_id:
             channel = interaction.guild.get_channel(channel_id)
             if channel:
-                for stat in ("win_rate", "kda", "wins", "rank"):
+                for stat in ("win_rate", "kda", "wins", "rank", "double_kills", "triple_kills", "quadra_kills", "penta_kills"):
                     embed = await build_leaderboard_embed(stat)
                     await channel.send(embed=embed)
                 meme_embed = await build_meme_stats_embed()
@@ -83,7 +87,7 @@ class LeaderboardCog(commands.Cog):
             if channel_id:
                 channel = guild.get_channel(channel_id)
                 if channel:
-                    for stat in ("win_rate", "kda", "wins", "rank"):
+                    for stat in ("win_rate", "kda", "wins", "rank", "double_kills", "triple_kills", "quadra_kills", "panta_kills"):
                         embed = await build_leaderboard_embed(stat)
                         await channel.send(embed=embed)
                     meme_embed = await build_meme_stats_embed()
