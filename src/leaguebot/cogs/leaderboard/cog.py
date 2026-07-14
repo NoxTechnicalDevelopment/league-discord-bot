@@ -87,7 +87,7 @@ class LeaderboardCog(commands.Cog):
             if channel_id:
                 channel = guild.get_channel(channel_id)
                 if channel:
-                    for stat in ("win_rate", "kda", "wins", "rank", "double_kills", "triple_kills", "quadra_kills", "panta_kills"):
+                    for stat in ("win_rate", "kda", "wins", "rank", "double_kills", "triple_kills", "quadra_kills", "penta_kills"):
                         embed = await build_leaderboard_embed(stat)
                         await channel.send(embed=embed)
                     meme_embed = await build_meme_stats_embed()

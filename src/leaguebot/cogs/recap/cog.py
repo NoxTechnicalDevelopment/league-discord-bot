@@ -93,6 +93,10 @@ class RecapCog(commands.Cog):
         embed.add_field(name="Damage to champions", value=str(participant["totalDamageDealtToChampions"]))
         embed.add_field(name="Game mode", value=match["info"]["gameMode"])
         embed.add_field(name="Duration", value=f"{match['info']['gameDuration'] // 60}m")
+        embed.add_field(name="Double Kills", value=str(participant["doubleKills"]))
+        embed.add_field(name="Triple Kills", value=str(participant["tripleKills"]))
+        embed.add_field(name="Quadra Kills", value=str(participant["quadraKills"]))
+        embed.add_field(name="Penta Kills", value=str(participant["pentaKills"]))
 
         item_ids = [participant[f"item{i}"] for i in range(7)]
         item_names = [item_name(i) for i in item_ids if item_name(i)]
