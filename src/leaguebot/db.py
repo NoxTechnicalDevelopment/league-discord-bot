@@ -76,6 +76,12 @@ async def init_db() -> None:
             await db.execute("ALTER TABLE streaks ADD COLUMN last_match_id TEXT")
         await db.commit()
 
+async def clear_stale_data(discord_id: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute("DELETE FROM ranks WHERE discord_id = ?", (discord_id,))
+        await db.execute("DELETE FROM matches WHERE discord_id = ?", (discord_id,))
+        await db.commit()
+
 
 async def register_user(discord_id: int, game_name: str, tag_line: str, puuid: str) -> None:
     async with aiosqlite.connect(DB_PATH) as db:
@@ -91,6 +97,7 @@ async def register_user(discord_id: int, game_name: str, tag_line: str, puuid: s
             (discord_id, game_name, tag_line, puuid),
         )
         await db.commit()
+    await clear_stale_data(discord_id)
 
 
 async def get_registered_user(discord_id: int) -> dict | None:
