@@ -10,6 +10,7 @@ A League of Legends companion bot for Discord — post-game recaps, weekly leade
 - **`/randomchamp`** — Random champion with a fully legal random rune page (correct keystone/row rules) and splash art
 - **`/memestats`** — Weekly superlatives: most deaths, best KDA game, longest game, most damage, most gold, most CS
 - **`/setleaderboardchannel`** — Configure where the weekly leaderboard + meme stats auto-post
+-**`/streaks [user]`** - Checks for win/lose streaks for user inserted/defaults to user who puts in command
 - **`/syncnow`** — Manually trigger the weekly data sync + post (admin only)
 
 Every Monday, the bot automatically syncs fresh match/rank data for all registered users and posts the leaderboard (all four stat categories) plus meme stats to the configured channel.
