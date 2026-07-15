@@ -1,5 +1,6 @@
 # SQLite-backed storage for Discord user -> Riot account mappings. Used by /register and any command that accepts @user instead of a raw Riot ID.
 import aiosqlite
+import discord
 from pathlib import Path
 
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "bot.db"
@@ -61,6 +62,18 @@ async def init_db() -> None:
                 leaderboard_channel_id INTEGER
             )
         """)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS streaks (
+                discord_id INTEGER PRIMARY KEY,
+                current_streak INTEGER DEFAULT 0,
+                streak_type TEXT DEFAULT 'none',
+                last_alert_streak INTEGER DEFAULT 0
+            )
+        """)
+        async with db.execute("PRAGMA table_info(streaks)") as cursor:
+            existing_streak_columns = {row[1] async for row in cursor}
+        if "last_match_id" not in existing_streak_columns:
+            await db.execute("ALTER TABLE streaks ADD COLUMN last_match_id TEXT")
         await db.commit()
 
 
@@ -95,6 +108,10 @@ async def get_all_registered_users() -> list[dict]:
         async with db.execute("SELECT * FROM users") as cursor:
             rows = await cursor.fetchall()
             return [dict(row) for row in rows]
+        
+async def get_registered_users_in_guild(guild: discord.Guild) -> list[dict]:
+    all_users = await get_all_registered_users()
+    return [u for u in all_users if guild.get_member(u["discord_id"]) is not None]
 
 
 async def save_match(discord_id: int, match_id: str, champion: str, win: bool,
@@ -191,3 +208,57 @@ async def get_leaderboard_channel(guild_id: int) -> int | None:
         ) as cursor:
             row = await cursor.fetchone()
             return row["leaderboard_channel_id"] if row else None
+        
+async def get_streak(discord_id: int) -> dict | None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        db.row_factory = aiosqlite.Row
+        async with db.execute(
+            "SELECT * FROM streaks WHERE discord_id = ?", (discord_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+        
+async def update_streak(discord_id: int, won: bool) -> tuple[int, str]:
+    # Returns (current streak, streak type(W/L)) after applying the result
+    result_type = "win" if won else "loss"
+    existing = await get_streak(discord_id)
+    if existing is None:
+        current_streak = 1
+    elif existing["streak_type"] == result_type:
+        current_streak = existing["current_streak"] + 1
+    else:
+        current_streak = 1
+
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO streaks (discord_id, current_streak, streak_type)
+            VALUES (?, ?, ?)
+            ON CONFLICT(discord_id) DO UPDATE SET
+                current_streak = excluded.current_streak,
+                streak_type = excluded.streak_type
+            """,
+            (discord_id, current_streak, result_type),
+        )
+        await db.commit()
+    return current_streak, result_type
+
+async def set_last_alert_streak(discord_id: int, streak: int) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            "UPDATE streaks SET last_alert_streak = ? WHERE discord_id = ?",
+            (streak, discord_id),
+        )
+        await db.commit()
+
+async def set_last_match_id(discord_id: int, match_id: str) -> None:
+    async with aiosqlite.connect(DB_PATH) as db:
+        await db.execute(
+            """
+            INSERT INTO streaks (discord_id, last_match_id)
+            VALUES (?, ?)
+            ON CONFLICT(discord_id) DO UPDATE SET last_match_id = excluded.last_match_id
+            """,
+            (discord_id, match_id),
+        )
+        await db.commit()

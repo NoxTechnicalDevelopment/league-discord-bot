@@ -4,7 +4,7 @@ import time
 
 import discord
 
-from leaguebot.db import get_all_registered_users, get_recent_matches, get_rank
+from leaguebot.db import get_recent_matches, get_rank, get_registered_users_in_guild
 
 SECONDS_PER_WEEK = 7 * 24 * 60 * 60
 
@@ -49,8 +49,8 @@ async def _weekly_stats_for_user(discord_id: int) -> dict | None:
     }
 
 
-async def build_leaderboard_embed(stat: str) -> discord.Embed:
-    users = await get_all_registered_users()
+async def build_leaderboard_embed(guild: discord.Guild, stat: str) -> discord.Embed:
+    users = await get_registered_users_in_guild(guild)
     rows = []
 
     for user in users:

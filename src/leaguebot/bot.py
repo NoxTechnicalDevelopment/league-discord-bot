@@ -15,6 +15,7 @@ GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
@@ -36,6 +37,7 @@ async def main():
         await bot.load_extension("leaguebot.cogs.recap.cog")
         await bot.load_extension("leaguebot.cogs.leaderboard.cog")
         await bot.load_extension("leaguebot.cogs.memestats.cog")
+        await bot.load_extension("leaguebot.cogs.alerts.cog")
         await bot.start(TOKEN)
 
 

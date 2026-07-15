@@ -54,9 +54,9 @@ class LeaderboardCog(commands.Cog):
             channel = interaction.guild.get_channel(channel_id)
             if channel:
                 for stat in ("win_rate", "kda", "wins", "rank", "double_kills", "triple_kills", "quadra_kills", "penta_kills"):
-                    embed = await build_leaderboard_embed(stat)
+                    embed = await build_leaderboard_embed(interaction.guild, stat)
                     await channel.send(embed=embed)
-                meme_embed = await build_meme_stats_embed()
+                meme_embed = await build_meme_stats_embed(interaction.guild)
                 await channel.send(embed=meme_embed)
                 posted = True
 
@@ -72,7 +72,7 @@ class LeaderboardCog(commands.Cog):
     @app_commands.choices(stat=STAT_CHOICES)
     async def leaderboard(self, interaction: discord.Interaction, stat: app_commands.Choice[str]):
         await interaction.response.defer()
-        embed = await build_leaderboard_embed(stat.value)
+        embed = await build_leaderboard_embed(interaction.guild, stat.value)
         await interaction.followup.send(embed=embed)
 
     @tasks.loop(time=datetime.time(hour=12, minute=0))  # runs daily at 12:00 UTC, checks day inside
@@ -88,9 +88,9 @@ class LeaderboardCog(commands.Cog):
                 channel = guild.get_channel(channel_id)
                 if channel:
                     for stat in ("win_rate", "kda", "wins", "rank", "double_kills", "triple_kills", "quadra_kills", "penta_kills"):
-                        embed = await build_leaderboard_embed(stat)
+                        embed = await build_leaderboard_embed(guild, stat)
                         await channel.send(embed=embed)
-                    meme_embed = await build_meme_stats_embed()
+                    meme_embed = await build_meme_stats_embed(guild)
                     await channel.send(embed=meme_embed)
 
     @weekly_sync.before_loop

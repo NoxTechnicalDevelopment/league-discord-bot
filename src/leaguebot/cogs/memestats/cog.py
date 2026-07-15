@@ -14,7 +14,7 @@ class MemeStatsCog(commands.Cog):
     @app_commands.command(name="memestats", description="Show this week's meme stats")
     async def memestats(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        embed = await build_meme_stats_embed()
+        embed = await build_meme_stats_embed(interaction.guild)
         await interaction.followup.send(embed=embed)
 
 
