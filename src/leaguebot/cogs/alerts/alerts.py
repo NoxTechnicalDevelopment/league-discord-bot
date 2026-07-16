@@ -7,13 +7,13 @@ STREAK_THRESHOLD = 5
 LOSS_MESSAGES = [
     "Maybe you should quit while you're ahead...",
     "Can't end on a loss, but maybe you should make an exception after {streak} losses...",
-    "You're on a {streak}-game losing streak... maybe fuck off for the day 🤷",
+    "You're on a {streak}-game losing streak... maybe get off for the day 🤷",
     "After {streak} losses in a row, you might want to go touch some grass, or find a girlfriend or both",
     "You might need to change your underwear after this {streak} loss streak... it smells",
 ]
 
 WIN_MESSAGES = [
-    "{streak}-game win streak? Maybe time for a shower or food break. Maybe become a cigarette smoker like your grandfather.",
+    "{streak}-game win streak? Maybe time for a shower or food break.",
     "{streak} in a row? Whos letting you win?",
     "you must be Iron with {streak} wins in a row...",
     "Ain't no way you won {streak} in a row!",
