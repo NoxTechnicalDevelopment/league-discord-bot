@@ -45,7 +45,7 @@ async def _sync_all_users() -> dict:
                     p for p in match["info"]["participants"] if p["puuid"] == puuid
                 )
                 print(f"[SYNC]   saving match {match_id}")
-                await save_match(
+                added += await save_match(
                     discord_id=discord_id,
                     puuid=puuid,
                     match_id=match_id,
@@ -65,7 +65,6 @@ async def _sync_all_users() -> dict:
                     pentaKills=participant["pentaKills"],
                 )
                 print(f"[SYNC]   saved match {match_id}")
-                added += 1
 
             rank = await get_rank(puuid)
             if rank:
