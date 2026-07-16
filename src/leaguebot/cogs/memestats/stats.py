@@ -39,6 +39,15 @@ async def build_meme_stats_embed(guild: discord.Guild) -> discord.Embed:
         inline=False,
     )
 
+    worst_kda = min(matches, key=lambda m: (m["kills"] + m["assists"]) / max(m["deaths"], 1))
+    worst_kda_ratio = (worst_kda["kills"] + worst_kda["assists"]) / max(worst_kda["deaths"], 1)
+    embed.add_field(
+        name="🍗Inter of the Week",
+        value=f"{_label(worst_kda)} - {worst_kda['kills']}/{worst_kda['deaths']}/{worst_kda['assists']}"
+              f"({worst_kda_ratio:.1f} KDA) on {worst_kda['champion']}",
+        inline=False,
+    )
+
     longest_game = max(matches, key=lambda m: m["duration"])
     embed.add_field(
         name="⏱️ Longest Game",
