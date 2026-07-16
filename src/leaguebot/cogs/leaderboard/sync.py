@@ -1,5 +1,6 @@
 #Pulls fresh match history and current rank for every registered user, storing results in the DB. 
 # This is what both the weekly scheduled task and (eventually) a manual admin trigger call into.
+import asyncio
 import time
 
 from leaguebot.db import get_all_registered_users, save_match, save_rank
@@ -7,9 +8,15 @@ from leaguebot.riot_api import get_match_ids, get_match, get_rank, RiotAPIError
 
 SECONDS_PER_WEEK = 7 * 24 * 60 * 60
 MATCHES_TO_CHECK = 15  # how many recent match IDs to pull per user, per sync
+_SYNC_LOCK = asyncio.Lock()
 
 
 async def sync_all_users() -> dict:
+    async with _SYNC_LOCK:
+        return await _sync_all_users()
+
+
+async def _sync_all_users() -> dict:
     # Returns a summary dict: {discord_id: {"matches_added": int, "error": str | None}}
     users = await get_all_registered_users()
     print(f"[SYNC] starting the syn for {len(users)} user(s)")
