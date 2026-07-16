@@ -2,9 +2,10 @@
 # independent of leaderboards weekly sync. only pulls each users single 
 # most recent match per tick, attempting to be cheap on the RIOT API rate limit
 
-from leaguebot.db import get_all_registered_users, get_streak, set_last_match_id, get_leaderboard_channel
-from leaguebot.riot_api import get_match_ids, get_match, RiotAPIError
+from leaguebot.db import get_all_registered_users, get_streak, set_last_match_id, get_leaderboard_channel, get_rank as db_get_rank, save_rank
+from leaguebot.riot_api import get_match_ids, get_match, get_rank as riot_get_rank, RiotAPIError
 from . import alerts
+import time
 
 INTERVAL = 90
 
@@ -16,6 +17,7 @@ async def check_for_new_results(bot) -> None:
         discord_id = user["discord_id"]
         puuid = user["puuid"]
         regional_route = user["regional_route"]
+        platform_route = user["platform_route"]
 
         try:
             match_ids = await get_match_ids(puuid, regional_route=regional_route, count=1)
@@ -53,6 +55,24 @@ async def check_for_new_results(bot) -> None:
 
         if alert_msg:
             await post_alert(bot, discord_id, alert_msg)
+
+        # check for a rank change since a new game has been confirmed
+        try:
+            new_rank = await riot_get_rank(puuid, platform_route=platform_route)
+        except RiotAPIError as e:
+            print(f"[ALERTS] failed to fetch rank for {discord_id}: {e.message}")
+            continue
+
+        if new_rank:
+            old_rank = await db_get_rank(discord_id)
+            rank_msg = alerts.get_rank_change_message(old_rank, new_rank)
+            await save_rank(
+                discord_id=discord_id, puuid=puuid,
+                tier=new_rank["tier"], rank=new_rank["rank"],
+                league_points=new_rank["league_points"], updated_at=int(time.time())
+            )
+            if rank_msg:
+                await post_alert(bot, discord_id, rank_msg)
 
 
 async def post_alert(bot, discord_id: int, message: str) -> None:

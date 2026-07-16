@@ -13,7 +13,8 @@ A League of Legends companion bot for Discord — post-game recaps, weekly leade
 - **`/streaks [user]`** - Checks for win/lose streaks for user inserted/defaults to user who puts in command
 - **`/syncnow`** — Manually trigger the weekly data sync + post (admin only)
 
-Every Monday, the bot automatically syncs fresh match/rank data for all registered users and posts the leaderboard (all four stat categories) plus meme stats to the configured channel.
+- Every Monday, the bot automatically syncs fresh match/rank data for all registered users and posts the leaderboard (all four stat categories) plus meme stats to the configured channel.
+- ScuttleBuddy will send alerts for win/loss streaks(in intervals of 5) and when you and/or your friends rank up or rank down(from silver to gold, master to grandmaster)
 
 ## Setup
 
